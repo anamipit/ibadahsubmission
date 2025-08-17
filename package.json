@@ -17,7 +17,8 @@
     "@supabase/supabase-js": "^2.38.0",
     "dotenv": "^16.3.1",
     "cors": "^2.8.5",
-    "gsap": "^3.12.2"
+    "gsap": "^3.12.2",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

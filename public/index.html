@@ -23,9 +23,14 @@
         </div>
 
         <div id="content" style="display: none;">
-            <!-- Search Feature -->
+            <!-- Search and Export Feature -->
             <div class="search-container">
-                <input type="text" id="searchInput" placeholder="Cari berdasarkan nama atau kelas..." class="search-input">
+                <div class="search-export-row">
+                    <input type="text" id="searchInput" placeholder="Cari berdasarkan nama atau kelas..." class="search-input">
+                    <button id="exportBtn" class="btn btn-export">
+                        📊 Export Excel
+                    </button>
+                </div>
                 <div class="search-results" id="searchResults"></div>
             </div>
 
@@ -87,9 +92,10 @@
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('content').style.display = 'block';
                 
-                // Setup search and sorting functionality
+                // Setup search, sorting, and export functionality
                 setupSearch();
                 setupSorting();
+                setupExport();
                 
             } catch (error) {
                 console.error('❌ Error loading submissions:', error);
@@ -152,6 +158,59 @@
                 `;
                 
                 tbody.appendChild(row);
+            });
+        }
+
+        // Export functionality
+        function setupExport() {
+            const exportBtn = document.getElementById('exportBtn');
+            
+            exportBtn.addEventListener('click', async function() {
+                try {
+                    console.log('📊 Starting Excel export...');
+                    
+                    // Show loading state
+                    exportBtn.disabled = true;
+                    exportBtn.textContent = '⏳ Exporting...';
+                    
+                    // Fetch Excel file
+                    const response = await fetch('/api/submissions/export/excel');
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    // Get filename from response headers
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    const filename = contentDisposition 
+                        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '') 
+                        : 'Data_Submission_Ibadah.xlsx';
+                    
+                    // Convert response to blob
+                    const blob = await response.blob();
+                    
+                    // Create download link
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    
+                    // Cleanup
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    console.log('✅ Excel exported successfully');
+                    
+                } catch (error) {
+                    console.error('❌ Error exporting Excel:', error);
+                    alert('Gagal mengexport data ke Excel. Silakan coba lagi.');
+                } finally {
+                    // Reset button state
+                    exportBtn.disabled = false;
+                    exportBtn.textContent = '📊 Export Excel';
+                }
             });
         }
 
