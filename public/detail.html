@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail Submission Ibadah</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="/js/SplitText.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 id="animated-title-detail" class="animated-title">Detail Submission Ibadah</h1>
+        </header>
+
+        <div class="mb-2">
+            <a href="/" class="btn btn-secondary">← Kembali ke Daftar</a>
+        </div>
+
+        <div id="loading" class="loading">
+            Memuat detail submission...
+        </div>
+
+        <div id="error" class="error" style="display: none;">
+            <p>Terjadi kesalahan saat memuat data. Submission tidak ditemukan.</p>
+        </div>
+
+        <div id="content" style="display: none;">
+            <!-- Detail submission akan dimuat di sini -->
+        </div>
+    </div>
+
+    <script>
+        // Get submission ID from URL
+        function getSubmissionId() {
+            const pathParts = window.location.pathname.split('/');
+            return pathParts[pathParts.length - 1];
+        }
+
+        // Fetch submission detail
+        async function loadSubmissionDetail() {
+            const submissionId = getSubmissionId();
+            
+            console.log('🔍 Getting submission ID:', submissionId);
+            
+            if (!submissionId) {
+                showError('ID submission tidak valid');
+                return;
+            }
+
+            try {
+                console.log('🔄 Fetching submission detail for ID:', submissionId);
+                const response = await fetch(`/api/submissions/${submissionId}/parsed`);
+                
+                console.log('📡 Detail response:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    ok: response.ok
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const submission = await response.json();
+                console.log('📊 Received submission detail:', submission);
+                console.log('🧩 Jawaban refleksi parsed:', submission.jawaban_refleksi_parsed);
+                console.log('🧩 Jawaban kuis parsed:', submission.jawaban_kuis_parsed);
+                
+                displaySubmissionDetail(submission);
+                
+                // Hide loading, show content
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+                
+            } catch (error) {
+                console.error('❌ Error loading submission detail:', error);
+                showError('Gagal memuat detail submission');
+            }
+        }
+
+        // Display submission detail
+        function displaySubmissionDetail(submission) {
+            const content = document.getElementById('content');
+            
+            // Format date
+            const date = new Date(submission.created_at);
+            const formattedDate = date.toLocaleDateString('id-ID', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            content.innerHTML = `
+                <div class="detail-container">
+                    <div class="detail-header">
+                        <h2>Submission #${submission.id}</h2>
+                        <p>Disubmit pada: ${formattedDate}</p>
+                    </div>
+
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <h3>Nama Siswa</h3>
+                            <p>${submission.nama}</p>
+                        </div>
+                        <div class="detail-item">
+                            <h3>Kelas</h3>
+                            <p>${submission.kelas}</p>
+                        </div>
+                        <div class="detail-item">
+                            <h3>Skor</h3>
+                            <p>${submission.skor || 'Belum dinilai'}</p>
+                        </div>
+                        <div class="detail-item">
+                            <h3>ID Submission</h3>
+                            <p>${submission.id}</p>
+                        </div>
+                        ${submission.jawaban_refleksi && submission.jawaban_refleksi.target_upgrade ? `
+                        <div class="detail-item">
+                            <h3>Target Upgrade</h3>
+                            <p>${Array.isArray(submission.jawaban_refleksi.target_upgrade) ? 
+                                submission.jawaban_refleksi.target_upgrade.join(', ') : 
+                                submission.jawaban_refleksi.target_upgrade}</p>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    ${generateJsonSection('Jawaban Refleksi', submission.jawaban_refleksi_parsed)}
+                    ${generateJsonSection('Jawaban Kuis', submission.jawaban_kuis_parsed)}
+                </div>
+            `;
+        }
+
+        // Generate JSON section
+        function generateJsonSection(title, jsonData) {
+            if (!jsonData || jsonData.length === 0) {
+                return `
+                    <div class="json-section">
+                        <h3>${title}</h3>
+                        <p>Tidak ada data ${title.toLowerCase()}</p>
+                    </div>
+                `;
+            }
+
+            // Handle different data structures based on the title
+            const isRefleksi = title.toLowerCase().includes('refleksi');
+            
+            const tableRows = jsonData.map(item => {
+                let pertanyaan = item.key;
+                let jawaban = item.value;
+                
+                // Handle refleksi data structure
+                if (isRefleksi && typeof item.value === 'object' && item.value !== null) {
+                    pertanyaan = item.value.pertanyaan || item.key;
+                    jawaban = item.value.jawaban || 'Tidak ada jawaban';
+                } else if (Array.isArray(item.value)) {
+                    jawaban = item.value.join(', ');
+                } else if (typeof item.value === 'object' && item.value !== null) {
+                    jawaban = JSON.stringify(item.value);
+                }
+                
+                return `
+                    <tr>
+                        <td>${pertanyaan}</td>
+                        <td>${jawaban}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            return `
+                <div class="json-section">
+                    <h3>${title}</h3>
+                    <div class="json-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>${isRefleksi ? 'Pertanyaan' : 'Key'}</th>
+                                    <th>Jawaban</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tableRows}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Show error message
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            const errorDiv = document.getElementById('error');
+            errorDiv.querySelector('p').textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // Initialize text animation
+        function initTextAnimation() {
+            SplitText.create('#animated-title-detail', {
+                className: 'animated-title',
+                delay: 80,
+                duration: 0.5,
+                ease: 'power3.out',
+                splitType: 'chars',
+                from: { opacity: 0, y: 30 },
+                to: { opacity: 1, y: 0 },
+                threshold: 0.1,
+                rootMargin: '-50px',
+                textAlign: 'center'
+            });
+        }
+
+        // Load data when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            initTextAnimation();
+            loadSubmissionDetail();
+        });
+    </script>
+</body>
+</html>

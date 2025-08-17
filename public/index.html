@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Submission Ibadah</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="/js/SplitText.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 id="animated-title" class="animated-title">Data Submission Ibadah</h1>
+        </header>
+
+        <div id="loading" class="loading">
+            Memuat data submissions...
+        </div>
+
+        <div id="error" class="error" style="display: none;">
+            <p>Terjadi kesalahan saat memuat data. Pastikan konfigurasi Supabase sudah benar.</p>
+        </div>
+
+        <div id="content" style="display: none;">
+            <!-- Search Feature -->
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Cari berdasarkan nama atau kelas..." class="search-input">
+                <div class="search-results" id="searchResults"></div>
+            </div>
+
+            <div class="table-container">
+                <table id="submissionsTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="nama">Nama <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-sort="kelas">Kelas <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-sort="skor">Kuis <span class="sort-icon">↕</span></th>
+                            <th>R1: Level</th>
+                            <th>R2: Kesadaran</th>
+                            <th>R3: Faktor Malas</th>
+                            <th>R4: Langkah Upgrade</th>
+                            <th>Target</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="submissionsBody">
+                        <!-- Data akan dimuat di sini -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let allSubmissions = [];
+        let currentSort = { field: null, direction: 'asc' };
+
+        // Fetch submissions data
+        async function loadSubmissions() {
+            try {
+                console.log('🔄 Starting to fetch submissions...');
+                const response = await fetch('/api/submissions');
+                
+                console.log('📡 Fetch response:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    ok: response.ok,
+                    headers: Object.fromEntries(response.headers.entries())
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const submissions = await response.json();
+                console.log('📊 Received submissions data:', submissions);
+                console.log('📊 Number of submissions:', submissions.length);
+                
+                // Store data globally for search functionality
+                allSubmissions = submissions;
+                
+                displaySubmissions(submissions);
+                
+                // Hide loading, show content
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+                
+                // Setup search and sorting functionality
+                setupSearch();
+                setupSorting();
+                
+            } catch (error) {
+                console.error('❌ Error loading submissions:', error);
+                console.error('❌ Error details:', {
+                    message: error.message,
+                    stack: error.stack
+                });
+                
+                // Hide loading, show error
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+            }
+        }
+
+        // Display submissions in table
+        function displaySubmissions(submissions) {
+            console.log('🎨 Displaying submissions in table...');
+            console.log('🎨 Submissions to display:', submissions);
+            
+            const tbody = document.getElementById('submissionsBody');
+            tbody.innerHTML = '';
+
+            if (!submissions || submissions.length === 0) {
+                console.log('⚠️ No submissions to display');
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="text-center">Tidak ada data submission</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            console.log(`🎨 Rendering ${submissions.length} submissions...`);
+            submissions.forEach((submission, index) => {
+                console.log(`🎨 Rendering submission ${index + 1}:`, submission);
+                const row = document.createElement('tr');
+                
+                // Format date
+                const date = new Date(submission.created_at);
+                const formattedDate = date.toLocaleDateString('id-ID', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                row.innerHTML = `
+                    <td class="bold-text">${submission.nama}</td>
+                    <td class="bold-text">${submission.kelas}</td>
+                    <td class="skor-cell">${submission.skor_formatted}</td>
+                    <td class="text-truncate" title="${submission.refleksi_1}">${submission.refleksi_1}</td>
+                    <td class="text-truncate" title="${submission.refleksi_2}">${submission.refleksi_2}</td>
+                    <td class="text-truncate" title="${submission.refleksi_3}">${submission.refleksi_3}</td>
+                    <td class="text-truncate" title="${submission.refleksi_4}">${submission.refleksi_4}</td>
+                    <td class="target-upgrade-cell" title="${submission.target_upgrade.replace(/<br>/g, ', ')}">${submission.target_upgrade}</td>
+                    <td>
+                        <a href="/detail/${submission.id}" class="btn">Detail</a>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // Search functionality
+        function setupSearch() {
+            const searchInput = document.getElementById('searchInput');
+            const searchResults = document.getElementById('searchResults');
+            
+            searchInput.addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase().trim();
+                
+                if (searchTerm === '') {
+                    // Show all submissions when search is empty
+                    displaySubmissions(allSubmissions);
+                    searchResults.textContent = '';
+                    return;
+                }
+                
+                // Filter submissions based on nama or kelas
+                const filteredSubmissions = allSubmissions.filter(submission => {
+                    return submission.nama.toLowerCase().includes(searchTerm) || 
+                           submission.kelas.toLowerCase().includes(searchTerm);
+                });
+                
+                // Update search results count
+                searchResults.textContent = `Menampilkan ${filteredSubmissions.length} dari ${allSubmissions.length} submissions`;
+                
+                // Display filtered results
+                displaySubmissions(filteredSubmissions);
+                
+                console.log(`🔍 Search for "${searchTerm}" found ${filteredSubmissions.length} results`);
+            });
+        }
+
+        // Sorting functionality
+        function setupSorting() {
+            const sortableHeaders = document.querySelectorAll('.sortable');
+            
+            sortableHeaders.forEach(header => {
+                header.addEventListener('click', function() {
+                    const field = this.getAttribute('data-sort');
+                    const currentDirection = currentSort.direction;
+                    
+                    // Toggle sort direction
+                    const newDirection = currentSort.field === field && currentDirection === 'asc' ? 'desc' : 'asc';
+                    
+                    // Update current sort
+                    currentSort = { field, direction: newDirection };
+                    
+                    // Update sort icons
+                    updateSortIcons();
+                    
+                    // Sort and display data
+                    const sortedData = sortSubmissions(allSubmissions, field, newDirection);
+                    displaySubmissions(sortedData);
+                    
+                    console.log(`🔄 Sorted by ${field} in ${newDirection} order`);
+                });
+            });
+        }
+        
+        function sortSubmissions(data, field, direction) {
+            return [...data].sort((a, b) => {
+                let aVal = a[field];
+                let bVal = b[field];
+                
+                // Handle numeric values
+                if (field === 'skor') {
+                    aVal = aVal || 0;
+                    bVal = bVal || 0;
+                    return direction === 'asc' ? aVal - bVal : bVal - aVal;
+                }
+                
+                // Handle string values
+                aVal = (aVal || '').toString().toLowerCase();
+                bVal = (bVal || '').toString().toLowerCase();
+                
+                if (direction === 'asc') {
+                    return aVal.localeCompare(bVal);
+                } else {
+                    return bVal.localeCompare(aVal);
+                }
+            });
+        }
+        
+        function updateSortIcons() {
+            const sortableHeaders = document.querySelectorAll('.sortable');
+            
+            sortableHeaders.forEach(header => {
+                const field = header.getAttribute('data-sort');
+                const icon = header.querySelector('.sort-icon');
+                
+                if (currentSort.field === field) {
+                    icon.textContent = currentSort.direction === 'asc' ? '↑' : '↓';
+                    icon.style.color = '#16a085';
+                } else {
+                    icon.textContent = '↕';
+                    icon.style.color = 'rgba(255, 255, 255, 0.7)';
+                }
+            });
+        }
+
+        // Initialize text animation
+        function initTextAnimation() {
+            const handleAnimationComplete = () => {
+                console.log('All letters have animated!');
+            };
+
+            SplitText.create('#animated-title', {
+                className: 'animated-title',
+                delay: 100,
+                duration: 0.6,
+                ease: 'power3.out',
+                splitType: 'chars',
+                from: { opacity: 0, y: 40 },
+                to: { opacity: 1, y: 0 },
+                threshold: 0.1,
+                rootMargin: '-50px',
+                textAlign: 'center',
+                onLetterAnimationComplete: handleAnimationComplete,
+                repeat: true,
+                repeatDelay: 5000 // 5 seconds
+            });
+        }
+
+        // Load data when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            initTextAnimation();
+            loadSubmissions();
+        });
+    </script>
+</body>
+</html>
