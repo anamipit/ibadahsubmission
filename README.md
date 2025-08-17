@@ -12,10 +12,14 @@ Simple web application untuk menampilkan data submissions dari Supabase dengan E
 - ✅ Tanpa fitur edit/delete
 - ✅ Responsif untuk mobile dan desktop
 
-## Setup
+## Quick Start
+
+### **Local Development:**
 
 1. **Clone repository dan install dependencies:**
    ```bash
+   git clone https://github.com/yourusername/ibadahsubmission.git
+   cd ibadahsubmission
    npm install
    ```
 
@@ -40,6 +44,19 @@ Simple web application untuk menampilkan data submissions dari Supabase dengan E
 4. **Buka browser:**
    Akses `http://localhost:3000`
 
+### **Vercel Deployment (One-Click):**
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/ibadahsubmission)
+
+1. **Klik tombol "Deploy with Vercel" di atas**
+2. **Import repository dari GitHub**
+3. **Set environment variables di Vercel dashboard:**
+   - `SUPABASE_URL`
+   - `SUPABASE_ANON_KEY`
+4. **Deploy!** 🚀
+
+Aplikasi akan otomatis deploy dan tersedia di URL Vercel.
+
 ## Struktur Database
 
 Aplikasi ini menggunakan tabel `submissions` dengan struktur:
@@ -56,16 +73,63 @@ CREATE TABLE public.submissions (
 );
 ```
 
-## Deployment ke Cloudflare Pages
+## Deployment ke Vercel
 
-1. **Build aplikasi untuk static hosting:**
-   Karena Cloudflare Pages adalah static hosting, Anda perlu menggunakan serverless functions atau mengonversi ke static site.
+Vercel adalah platform yang sempurna untuk aplikasi Express.js ini. Berikut langkah-langkah deployment:
 
-2. **Alternative deployment options:**
-   - Vercel (mendukung Node.js/Express)
-   - Heroku
-   - Railway
-   - DigitalOcean App Platform
+### 1. **Persiapan Repository**
+Pastikan repository sudah di-push ke GitHub dengan struktur file yang benar:
+```
+ibadahsubmission/
+├── server.js               # Main Express server
+├── package.json            # Dependencies
+├── vercel.json            # Vercel configuration
+├── .env                   # Environment variables (tidak di-commit)
+└── ... (file lainnya)
+```
+
+### 2. **Setup Environment Variables di Vercel**
+1. Buka [Vercel Dashboard](https://vercel.com/dashboard)
+2. Import project dari GitHub
+3. Di project settings → Environment Variables, tambahkan:
+   ```
+   SUPABASE_URL=your_supabase_project_url_here
+   SUPABASE_ANON_KEY=your_supabase_anon_key_here
+   ```
+
+### 3. **Deploy via Vercel CLI (Optional)**
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Login ke Vercel
+vercel login
+
+# Deploy
+vercel
+
+# Untuk production
+vercel --prod
+```
+
+### 4. **Deploy via GitHub Integration (Recommended)**
+1. Connect GitHub repository ke Vercel
+2. Vercel akan auto-deploy setiap kali ada push ke main branch
+3. Set environment variables di Vercel dashboard
+4. Deploy otomatis!
+
+### 5. **Custom Domain (Optional)**
+- Di Vercel dashboard → Domains
+- Tambahkan custom domain Anda
+- Update DNS records sesuai instruksi Vercel
+
+## Alternative Deployment Options
+
+Jika tidak menggunakan Vercel, Anda bisa deploy ke:
+- **Railway**: `railway up`
+- **Heroku**: `git push heroku main`
+- **DigitalOcean App Platform**: Via dashboard
+- **Render**: Connect GitHub repository
 
 ## API Endpoints
 
@@ -93,6 +157,8 @@ ibadahsubmission/
 
 ## Troubleshooting
 
+### **Local Development Issues:**
+
 1. **Error koneksi Supabase:**
    - Pastikan `SUPABASE_URL` dan `SUPABASE_ANON_KEY` sudah benar
    - Pastikan tabel `submissions` sudah dibuat di Supabase
@@ -106,3 +172,36 @@ ibadahsubmission/
 3. **Port sudah digunakan:**
    - Ubah PORT di file `.env`
    - Atau kill process yang menggunakan port 3000
+
+### **Vercel Deployment Issues:**
+
+1. **Environment Variables Error:**
+   - Pastikan environment variables sudah diset di Vercel dashboard
+   - Redeploy setelah mengubah environment variables
+   - Cek Vercel function logs untuk error details
+
+2. **Build Error:**
+   - Pastikan `vercel.json` sudah benar
+   - Cek bahwa `server.js` adalah entry point yang benar
+   - Pastikan semua dependencies ada di `package.json`
+
+3. **Runtime Error:**
+   - Cek Vercel function logs
+   - Pastikan Supabase connection string valid
+   - Test API endpoints di Vercel deployment URL
+
+4. **CORS Issues:**
+   - Pastikan CORS sudah dikonfigurasi dengan benar
+   - Tambahkan domain Vercel ke Supabase CORS settings jika perlu
+
+### **Debugging Commands:**
+```bash
+# Test local environment
+node -e "require('dotenv').config(); console.log(process.env.SUPABASE_URL);"
+
+# Test Vercel deployment
+curl https://your-app.vercel.app/api/submissions
+
+# Check Vercel logs
+vercel logs your-app-name
+```
