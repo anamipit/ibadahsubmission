@@ -396,10 +396,10 @@ th, td {
 th:nth-child(1), td:nth-child(1) { width: 12%; } /* Nama */
 th:nth-child(2), td:nth-child(2) { width: 8%; }  /* Kelas */
 th:nth-child(3), td:nth-child(3) { width: 12%; } /* Skor */
-th:nth-child(4), td:nth-child(4) { width: 15%; } /* Refleksi 1 */
-th:nth-child(5), td:nth-child(5) { width: 15%; } /* Refleksi 2 */
-th:nth-child(6), td:nth-child(6) { width: 15%; } /* Refleksi 3 */
-th:nth-child(7), td:nth-child(7) { width: 15%; } /* Refleksi 4 */
+th:nth-child(4), td:nth-child(4) { width: 12%; } /* Refleksi 1 */
+th:nth-child(5), td:nth-child(5) { width: 12%; } /* Refleksi 2 */
+th:nth-child(6), td:nth-child(6) { width: 12%; } /* Refleksi 3 */
+th:nth-child(7), td:nth-child(7) { width: 12%; } /* Refleksi 4 */
 th:nth-child(8), td:nth-child(8) { width: 15%; } /* Target Upgrade */
 th:nth-child(9), td:nth-child(9) { width: 8%; }  /* Aksi */
 
@@ -442,6 +442,33 @@ th:nth-child(9), td:nth-child(9) { width: 8%; }  /* Aksi */
     max-width: 200px;
     line-height: 1.4;
     font-size: 0.9rem;
+}
+
+/* Word wrap styling for refleksi columns */
+.refleksi-cell {
+    white-space: normal !important;
+    word-wrap: break-word;
+    word-break: break-word;
+    line-height: 1.4;
+    font-size: 0.9rem;
+    max-width: 0; /* Forces word wrap */
+    padding: 12px 8px;
+    vertical-align: top;
+}
+
+/* Alternative styling using nth-child for better compatibility */
+td:nth-child(4), /* R1: Level */
+td:nth-child(5), /* R2: Kesadaran */
+td:nth-child(6), /* R3: Faktor Malas */
+td:nth-child(7)  /* R4: Langkah Upgrade */ {
+    white-space: normal !important;
+    word-wrap: break-word;
+    word-break: break-word;
+    line-height: 1.4;
+    font-size: 0.9rem;
+    max-width: 0; /* Forces word wrap */
+    padding: 12px 8px;
+    vertical-align: top;
 }
 
 .text-truncate {
@@ -507,6 +534,13 @@ th:nth-child(9), td:nth-child(9) { width: 8%; }  /* Aksi */
     .btn {
         padding: 0.4rem 0.8rem;
         font-size: 0.8rem;
+    }
+    
+    /* Mobile optimization for refleksi columns */
+    .refleksi-cell {
+        font-size: 0.8rem;
+        line-height: 1.3;
+        padding: 8px 4px;
     }
     
     .detail-container {
